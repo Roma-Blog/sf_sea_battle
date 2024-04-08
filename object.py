@@ -1,26 +1,30 @@
-import re
+import re, random
     
 class Cell:
     __char = 'O'
-    __state = None
+    __status = None
 
     @property
     def get_char(self):
         return self.__char
     
     @property
-    def get_state(self):
-        return self.__state
+    def get_status(self):
+        return self.__status
 
-    @get_state.setter
-    def set_state(self, state):
+    @get_status.setter
+    def set_status(self, status):
 
-        self.__state = state
+        self.__status = status
 
-        if state == 'ship':
+        if status == 'ship':
             self.__char = '■'
-        elif state == 'ship_nearby':
+        elif status == 'ship_nearby':
             self.__char = '-'
+
+    @get_char.setter
+    def set_char(self, char):
+        self.__char = char
 
 
 class PlayengField:
@@ -52,7 +56,7 @@ class PlayengField:
 class Canvas:
     
     @staticmethod
-    def draw_canvas(playing_field: PlayengField):
+    def draw_playing_field(playing_field: PlayengField):
         first_row = [i for i in range(1, playing_field.get_width + 1)]
         colum = iter(range(1, playing_field.get_height + 1))
 
@@ -79,8 +83,7 @@ class Ship:
 
 
 class Game:
-    
-    __ship_list = []
+
     __fleet = {}
 
     def __init__(self, ships: list, canvas: Canvas):
@@ -89,49 +92,46 @@ class Game:
         self.__canvas = canvas
 
     def __coordinates_validate(self, coordinates: str, size: int, direction: str, playing_field: PlayengField):
-        format = re.fullmatch(r'[0-9],[0-9]', coordinates)
-        coordinate_limits = False
-
-        if format:
+        if re.fullmatch(r'[0-9],[0-9]', coordinates):
             coor = list(map(lambda cor: int(cor) - 1, coordinates.split(',')))
-
-            if coor[0] <= playing_field.get_height and coor[1] <= playing_field.get_width:
-                if direction == 'h':
-                    if coor[1] + size <= playing_field.get_height:
-                        coordinate_limits = True
-                else:
-                    if coor[0] + size <= playing_field.get_width:
-                        coordinate_limits = True
-            else:
+            try:
+                for i in range(size):
+                    x = coor[0] + i if direction == 'v' else coor[0]
+                    y = coor[1] + i if direction == 'h' else coor[1]
+                    if playing_field.get_playing_field[x][y].get_status is not None:
+                            return False
+                return True 
+            except IndexError:
                 return False
-            
-            for i in range(size):
-                if direction == 'h':
-                    if playing_field.get_playing_field[coor[0]][coor[1] + i].get_state is not None:
-                        return False
-                else:
-                    if playing_field.get_playing_field[coor[0] + i][coor[1]].get_state is not None:
-                        return False
-
-        return coordinate_limits and format
+        else:
+            return False
 
     @staticmethod
     def __change_status_around(playing_field: PlayengField, x: int, y: int):
         for _x in range(-1, 2):
             for _y in range(-1, 2):
                 try:
-                    no_ship = playing_field.get_playing_field[x + _x][y + _y].get_state !='ship'
+                    no_ship = playing_field.get_playing_field[x + _x][y + _y].get_status !='ship'
                     cell_available = x + _x >= 0 and y + _y >= 0
 
                     if cell_available and no_ship:
-                        playing_field.get_playing_field[x + _x][y + _y].set_state = "ship_nearby"
+                        playing_field.get_playing_field[x + _x][y + _y].set_status = "ship_nearby"
 
                 except IndexError:
                     pass #Хитрый ход что бы необрабатывать выход за границы поля
+    
+    def __place_ship_on_playing(self, playing_field: PlayengField, size: int, direction:str, x: int, y: int):
+        for i in range(size):
+            _x = x + i if direction == 'v' else x
+            _y = y + i if direction == 'h' else y
+
+            playing_field.get_playing_field[_x][_y].set_status = 'ship'
+            self.__change_status_around(playing_field, _x, _y)
+      
 
     def __deliver_ship(self, size: int, playing_field: PlayengField, direction: str = 'h'):
 
-        self.__canvas.draw_canvas(playing_field)
+        self.__canvas.draw_playing_field(playing_field)
 
         print('Куда поставить корабль?\n')
         if direction == 'h':
@@ -148,18 +148,30 @@ class Game:
         else:
             if self.__coordinates_validate(comand, size, direction, playing_field):
                 coor = list(map(lambda item: int(item) - 1, comand.split(',')))
-                for i in range(size):
-                    if direction == 'h':
-                        playing_field.get_playing_field[coor[0]][coor[1] + i].set_state ='ship'
-                        self.__change_status_around(playing_field, coor[0], coor[1] + i)
-                    else:
-                        playing_field.get_playing_field[coor[0] + i][coor[1]].set_state ='ship'
-                        self.__change_status_around(playing_field, coor[0] + i, coor[1])
-                    
-                                                                                 
+                self.__place_ship_on_playing(playing_field, size, direction, coor[0], coor[1])                                                                         
             else:
                 print('Неверная команда!!! Либо вы указали несущестующие координаы\nили часть коробля попала за пределы поля.')
                 self.__deliver_ship(size, playing_field, direction)
+
+    def __deliver_ship_ai(self, size: int, playing_field: PlayengField):
+        random_coor: list
+        random_direction: str
+        sorting_coordinates = True
+
+        while sorting_coordinates:
+            random_coor = [random.randint(1, 6), random.randint(1, 6)]
+            random_direction = 'h' if random.randint(0, 2) else 'v'
+            sorting_coordinates = not self.__coordinates_validate(','.join(list(map(str, random_coor))), size, random_direction, playing_field)
+        
+        self.__place_ship_on_playing(playing_field, size, random_direction, random_coor[0] - 1, random_coor[1] - 1)        
+
+    @staticmethod
+    def replacing_character(playing_field: PlayengField, char_old: str, char_new: str):
+        for row in playing_field.get_playing_field:
+            for cell in row:
+                if cell.get_char == char_old:
+                    cell.set_char = char_new
+
 
     def arrange_ships(self, playing_field: PlayengField, for_ai: bool = False):
         for ship in self.__fleet.keys():
@@ -167,7 +179,7 @@ class Game:
                 if not for_ai:
                     self.__deliver_ship(ship, playing_field)
                 else:
-                    pass
+                    self.__deliver_ship_ai(ship, playing_field)
 
     @property
     def get_big_ship(self):
