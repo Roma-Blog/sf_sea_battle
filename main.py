@@ -13,10 +13,22 @@ fleet = [big_ship, medium_ship, small_ship]
 
 game = Game(fleet, canvas)
 
-# game.arrange_ships(playeng_field)
-# game.replacing_character(playeng_field, '-', 'O')
+win = True
+
+game.arrange_ships(playeng_field, for_ai=True)
+game.replacing_character(playeng_field, '-', 'O')
 game.arrange_ships(playeng_field_ai, for_ai=True)
 game.replacing_character(playeng_field_ai, '-', 'O')
 game.replacing_character(playeng_field_ai, '■', 'O')
 
-# game.player_move(playeng_field, playeng_field_ai)
+while win:
+    canvas.clear_console()
+    game.player_move(playeng_field, playeng_field_ai)
+    if game.checking_victory(playeng_field_ai, '!!! -> Вы выиграли <- !!!'):
+        win = False
+        break
+    game.ai_move(playeng_field)
+    if game.checking_victory(playeng_field, '!!! -> Компьютер победил <- !!!'):
+        win = False
+        break
+    

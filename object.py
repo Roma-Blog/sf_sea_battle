@@ -1,4 +1,5 @@
-import re, random
+import re, random, os
+from sys import platform
     
 class Cell:
     __char = 'O'
@@ -21,7 +22,7 @@ class Cell:
             self.__char = '■'
         elif status == 'ship_nearby':
             self.__char = '-'
-        elif status == 'downer':
+        elif status == 'downed':
             self.__char = 'T'
         elif status == 'past':
             self.__char = 'X'
@@ -71,6 +72,13 @@ class Canvas:
                 print(cell.get_char, end='|')
             print()
 
+    @staticmethod
+    def clear_console():
+        if platform == "linux" or platform == "linux2":
+            os.system('clear')
+        elif platform == "win32":
+            clear = lambda: os.system('cls')
+            clear()
 
 class Ship:
     def __init__(self, size: int, count: int):
@@ -135,6 +143,7 @@ class Game:
 
     def __deliver_ship(self, size: int, playing_field: PlayengField, direction: str = 'h'):
 
+        self.__canvas.clear_console()
         self.__canvas.draw_playing_field(playing_field)
 
         print('Куда поставить корабль?\n')
@@ -227,6 +236,20 @@ class Game:
 
         self.__shot(playing_field, random_coor[0], random_coor[1])
 
+    @staticmethod
+    def checking_victory(playing_field: PlayengField, message: str):
+        cell_ship = 0
+        for row in playing_field.get_playing_field:
+            for cell in row:
+                if cell.get_status == 'ship':
+                    cell_ship += 1
+        
+        if cell_ship == 0:
+            print(message)
+            return True
+
+        return False
+    
     @property
     def get_big_ship(self):
         return self.__big_ship
