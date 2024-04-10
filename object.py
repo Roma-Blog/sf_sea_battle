@@ -23,9 +23,9 @@ class Cell:
         elif status == 'ship_nearby':
             self.__char = '-'
         elif status == 'downed':
-            self.__char = 'T'
-        elif status == 'past':
             self.__char = 'X'
+        elif status == 'past':
+            self.__char = 'T'
 
     @get_char.setter
     def set_char(self, char):
