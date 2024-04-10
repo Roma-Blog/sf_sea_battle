@@ -15,7 +15,7 @@ game = Game(fleet, canvas)
 
 win = True
 
-game.arrange_ships(playeng_field, for_ai=True)
+game.arrange_ships(playeng_field)
 game.replacing_character(playeng_field, '-', 'O')
 game.arrange_ships(playeng_field_ai, for_ai=True)
 game.replacing_character(playeng_field_ai, '-', 'O')
