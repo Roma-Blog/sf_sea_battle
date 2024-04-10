@@ -21,6 +21,10 @@ class Cell:
             self.__char = '■'
         elif status == 'ship_nearby':
             self.__char = '-'
+        elif status == 'downer':
+            self.__char = 'T'
+        elif status == 'past':
+            self.__char = 'X'
 
     @get_char.setter
     def set_char(self, char):
@@ -159,7 +163,7 @@ class Game:
         sorting_coordinates = True
 
         while sorting_coordinates:
-            random_coor = [random.randint(1, 6), random.randint(1, 6)]
+            random_coor = [random.randint(1, playing_field.get_width + 1), random.randint(1, playing_field.get_height + 1)]
             random_direction = 'h' if random.randint(0, 2) else 'v'
             sorting_coordinates = not self.__coordinates_validate(','.join(list(map(str, random_coor))), size, random_direction, playing_field)
         
@@ -180,6 +184,48 @@ class Game:
                     self.__deliver_ship(ship, playing_field)
                 else:
                     self.__deliver_ship_ai(ship, playing_field)
+
+    @staticmethod
+    def __validation_shot_coordinates(coordinates: str, playing_field: PlayengField):
+        if re.fullmatch(r'[0-9],[0-9]', coordinates):
+            coor = list(map(lambda cor: int(cor) - 1, coordinates.split(',')))
+            try:
+                status_cell = playing_field.get_playing_field[coor[0]][coor[1]].get_status
+                if status_cell == 'downed' or status_cell == 'past':
+                    return False
+                return True 
+            except IndexError:
+                return False
+        else:
+            return False
+
+    @staticmethod
+    def __shot(playing_field: PlayengField, x: int, y: int):
+        playing_field.get_playing_field[x][y].set_status = 'downed' if playing_field.get_playing_field[x][y].get_status =='ship' else 'past'
+            
+
+    def player_move(self, playing_field_pl: PlayengField, playing_field_ai: PlayengField):
+        print('Игра', end = '\n\n')
+        print('Ваши корабли:')
+        self.__canvas.draw_playing_field(playing_field_pl)
+        print('\nКорабли противника:')
+        self.__canvas.draw_playing_field(playing_field_ai)
+        print()
+        coor = input('Введите координаты (пример 1,1) куда выстрелить: ')
+
+        while not self.__validation_shot_coordinates(coor, playing_field_ai):
+            coor = input('Введите координаты (пример 1,1) куда выстрелить: ')
+
+        coor = list(map(lambda cor: int(cor) - 1, coor.split(',')))
+        self.__shot(playing_field_ai, coor[0], coor[1])
+
+    def ai_move(self, playing_field: PlayengField):
+        random_coor = [random.randint(0, playing_field.get_width), random.randint(0, playing_field.get_height)]
+
+        while not self.__validation_shot_coordinates(','.join(list(map(lambda a: str(a + 1), random_coor))), playing_field):
+            random_coor = [random.randint(0, playing_field.get_width), random.randint(0, playing_field.get_height)]
+
+        self.__shot(playing_field, random_coor[0], random_coor[1])
 
     @property
     def get_big_ship(self):
